@@ -1,11 +1,13 @@
   
 //jshint esversion : 6
 require("dotenv").config();
+const bcrypt = require('bcryptjs');
+const salt = bcrypt.genSaltSync(10);
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require("md5");
 
 const port = 3000;
 const app = express();
@@ -44,10 +46,13 @@ app.get("/register",function(req,res){
 
 
 app.post("/register",function(req,res){
+    const hash = bcrypt.hashSync(req.body.password, salt);
+
     const newU = new User({
         email:req.body.username,
-        password:md5(req.body.password)
+        password:hash
     })
+
     newU.save(function(err){
         if(err){
             console.log(err);
@@ -64,15 +69,18 @@ app.get("/logout",function(req,res){
 
 app.post("/login",function(req,res){
     const e = req.body.username;
-    const p = md5(req.body.password);
+    const p = (req.body.password);
     // console.log(p);
 
     User.findOne({email:e},function(err,foundUser){
         if(!err){
             if(foundUser!=null){
                 // console.log(foundUser.password);
-                if(foundUser.password === p){
+                if (bcrypt.compareSync(p, foundUser.password)) {
                     res.render("secrets");
+                }
+                else{
+                    res.send("Wrong password!");
                 }
             }           
             else{
